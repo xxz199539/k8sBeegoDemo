@@ -1,0 +1,1 @@
+/Users/charter/Desktop/CODE/src/k8sBeegoDemo/views/course_exam_rlt/show.tpl
