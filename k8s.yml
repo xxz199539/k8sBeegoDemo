@@ -1,0 +1,100 @@
+--- 
+apiVersion: v1
+kind: Namespace
+metadata: 
+  name: kube-apps
+
+--- 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k8s-demo
+  labels: 
+    app: k8sbeegodemo
+spec:
+  containers:
+    - image: xxz199439/beegodemo:latest
+      name: k8sbeegodemo
+      ports:
+        - containerPort: 8081
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8sbeegodemo-deploy
+  namespace: kube-apps
+  labels: 
+    app: k8sbeegodemo
+spec:    
+  replicas: 2
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector: 
+    matchLabels:
+      app: k8sbeegodemo
+  template:
+    metadata:
+      labels:
+        app: k8sbeegodemo
+    spec:
+      containers:
+      - image: xxz199439/beegodemo:latest
+        name: k8sbeegodemo
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 10
+          timeoutSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8081
+          initialDelaySeconds: 10
+          timeoutSeconds: 2
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8sbeegodemo-service
+  namespace: kube-apps
+  labels:
+    app: k8s-demo
+spec:
+  ports:
+    - name: api
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+  selector:
+    app: k8sbeegodemo
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: goapp-ingress
+  namespace: kube-apps
+spec:
+  rules:
+  - host: k8s-demo.local
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: k8sbeegodemo-service
+          servicePort: api
